@@ -28,7 +28,6 @@
         </thead>
         <tbody>
             {% for attestation in attestations %}
-
             <tr>
                 <td><a href="/admin/etudiant/{{ attestation['Numéro Étudiant'] }}">{{ attestation['Numéro Étudiant'] }}</a></td>
                 <td>{{ attestation['Nom'] }}</td>
@@ -44,13 +43,11 @@
                 <td>
                     {% if attestation['Validation'] == 'En attente' %}
                     <form action="/validate" method="post" style="display:inline;">
-                        <input type="hidden" name="index" value="{{ loop.index0 }}>  ← pour avoir l’index de l’élément (commence à 0)
-">
+                        <input type="hidden" name="index" value="{{ loop.index0 }}">
                         <button class="btn btn-success btn-sm">Valider</button>
                     </form>
                     <form action="/reject" method="post" style="display:inline;">
-                        <input type="hidden" name="index" value="{{ loop.index0 }}>  ← pour avoir l’index de l’élément (commence à 0)
-">
+                        <input type="hidden" name="index" value="{{ loop.index0 }}">
                         <input type="text" name="commentaire" placeholder="Commentaire" class="form-control mb-1">
                         <button class="btn btn-danger btn-sm">Refuser</button>
                     </form>
