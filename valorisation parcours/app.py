@@ -262,6 +262,16 @@ def export():
     df.to_excel(export_file, index=False)
     return send_file(export_file, as_attachment=True)
 
+@app.route('/admin/etudiant/<numero_etudiant>')
+def admin_etudiant(numero_etudiant):
+    if not session.get('admin'):
+        return redirect('/')
+
+    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
+    etudiant_docs = df[df['Numéro Étudiant'] == numero_etudiant]
+
+    return render_template('admin_etudiant.html', numero=numero_etudiant, attestations=etudiant_docs.to_dict(orient='records'))
+
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
