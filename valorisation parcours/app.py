@@ -79,6 +79,18 @@ def student_dashboard():
     else:
         df = pd.DataFrame()
     return render_template('student_dashboard.html', attestations=df.to_dict(orient='records'))
+# Vérifier si l'étudiant a complété ses infos
+    infos_fichier = 'infos_etudiants.csv'
+    df_infos = pd.read_csv(infos_fichier, encoding='utf-8-sig')
+    infos_ok = not df_infos[df_infos['Numéro Étudiant'] == session['student']].empty
+
+    # Charger les attestations existantes
+    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
+    student_data = df[df['Numéro Étudiant'] == session['student']]
+
+    return render_template('student_dashboard.html',
+                           attestations=student_data.to_dict(orient='records'),
+                           infos_ok=infos_ok)
 
 @app.route('/student_profile', methods=['GET', 'POST'])
 def student_profile():
