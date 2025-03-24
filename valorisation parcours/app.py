@@ -6,7 +6,7 @@ import hashlib
 
 app = Flask(__name__)
 app.secret_key = 'mon_super_secret'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
 UPLOAD_FOLDER = 'uploads'
 STUDENT_CREDENTIALS_FILE = 'students.csv'
