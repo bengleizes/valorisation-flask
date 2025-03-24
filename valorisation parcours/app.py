@@ -186,33 +186,6 @@ def upload():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-    try:
-        df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-        etudiant = df_infos[df_infos['Numéro Étudiant'] == session['student']].iloc[0]
-    except:
-        flash("Veuillez remplir vos informations personnelles.")
-        return redirect(url_for('student_profile'))
-
-    new_row = pd.DataFrame([{
-        "Nom": etudiant['Nom'],
-        "Prénom": etudiant['Prénom'],
-        "Numéro Étudiant": session['student'],
-        "Catégorie": categorie,
-        "Sous-catégorie": sous_categorie,
-        "Points": points,
-        "Fichier": filename,
-        "Validation": "En attente",
-        "Commentaire": ""
-    }])
-    if os.path.exists(RESULTS_FILE):
-        df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-        df = pd.concat([df, new_row], ignore_index=True)
-    else:
-        df = new_row
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
-    flash("Document soumis avec succès.")
-    return redirect(url_for('student_dashboard'))
-
 @app.route('/logout')
 def logout():
     session.pop('student', None)
