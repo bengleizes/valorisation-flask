@@ -13,25 +13,30 @@
 
     <table class="table" id="attestations-table">
         <thead>
-            <tr>
-                <th>Index</th>
-                <th>Numéro Étudiant</th>
-                <th>Catégorie</th>
-                <th>Sous-catégorie</th>
-                <th>Points</th>
-                <th>Fichier</th>
-                <th>Validation</th>
-                <th>Commentaire</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
+  <tr>
+    <th>Numéro Étudiant</th>
+    <th>Nom</th>
+    <th>Prénom</th>
+    <th>Catégorie</th>
+    <th>Sous-catégorie</th>
+    <th>Points</th>
+    <th>Validation</th>
+    <th>Commentaire</th>
+    <th>Document</th>
+    <th>Actions</th>
+  </tr>
+</thead>
+
         <tbody>
             {% for i in range(attestations|length) %}
              {% set attestation = attestations[i] %}
 
             <tr>
                 <td>{{ i }}</td>
-                <td>{{ attestation['Numéro Étudiant'] }}</td>
+                <td><a href="/admin/etudiant/{{ attestation['Numéro Étudiant'] }}">{{ attestation['Numéro Étudiant'] }}</a></td>
+<td>{{ attestation['Nom'] }}</td>
+<td>{{ attestation['Prénom'] }}</td>
+
                 <td>{{ attestation['Catégorie'] }}</td>
                 <td>{{ attestation['Sous-catégorie'] }}</td>
                 <td>{{ attestation['Points'] }}</td>
