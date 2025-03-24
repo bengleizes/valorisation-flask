@@ -34,7 +34,7 @@
         <a href="/student_dashboard">Accueil</a>
         <a href="/student_profile">Mes informations</a>
         <a href="/student_documents">Mes documents</a>
-        <a href="/logout" class="text-danger">Se déconnecter</a>
+        <a href="/logout" class="text-danger">Se déconnecter</a>   
         <div class="mt-auto text-center p-3">
             <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" style="max-width: 100px;">
         </div>
@@ -44,9 +44,9 @@
         <h2>Mes informations personnelles</h2>
 
         {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <div class="alert alert-success">{{ messages[0] }}</div>
-          {% endif %}
+            {% if messages %}
+                <div class="alert alert-success">{{ messages[0] }}</div>
+            {% endif %}
         {% endwith %}
 
         {% if deja_renseigne and not request.args.get('modifier') %}
@@ -76,12 +76,12 @@
                     <select name="promotion" class="form-select" required>
                         <option value="">-- Choisir une promotion --</option>
                         {% for promo in ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'] %}
-                          <option value="{{ promo }}" {% if deja_renseigne and etudiant['Promotion'] == promo %}selected{% endif %}>{{ promo }}</option>
+                            <option value="{{ promo }}" {% if deja_renseigne and etudiant['Promotion'] == promo %}selected{% endif %}>{{ promo }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label>Adresse email</label>
+                    <label>Email</label>
                     <input type="email" name="email" class="form-control" required value="{{ etudiant['Email'] if deja_renseigne else '' }}">
                 </div>
                 <button type="submit" class="btn btn-success">Enregistrer</button>
