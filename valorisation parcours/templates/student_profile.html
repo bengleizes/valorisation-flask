@@ -40,7 +40,7 @@
 </div>
     </div>
     <div class="main-content">
-        <h2>Mes informations personnelles</h2>
+    <h2>Mes informations personnelles</h2>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
@@ -48,26 +48,23 @@
       {% endif %}
     {% endwith %}
 
-    {% if deja_renseigne %}
+    {% if deja_renseigne and not request.args.get('modifier') %}
       <div class="mb-4">
           <p><strong>Nom :</strong> {{ etudiant['Nom'] }}</p>
           <p><strong>Prénom :</strong> {{ etudiant['Prénom'] }}</p>
           <p><strong>Promotion :</strong> {{ etudiant['Promotion'] }}</p>
           <p><strong>Email :</strong> {{ etudiant['Email'] }}</p>
       </div>
-
       <a href="?modifier=true" class="btn btn-outline-primary">Modifier mes informations</a>
-    {% endif %}
-
-    {% if not deja_renseigne or request.args.get('modifier') == 'true' %}
+    {% else %}
     <form method="POST" class="mt-4">
         <div class="mb-3">
             <label>Nom</label>
-            <input type="text" name="nom" class="form-control" required value="{{ etudiant['Nom'] if deja_renseigne }}">
+            <input type="text" name="nom" class="form-control" required value="{{ etudiant['Nom'] if deja_renseigne else '' }}">
         </div>
         <div class="mb-3">
             <label>Prénom</label>
-            <input type="text" name="prenom" class="form-control" required value="{{ etudiant['Prénom'] if deja_renseigne }}">
+            <input type="text" name="prenom" class="form-control" required value="{{ etudiant['Prénom'] if deja_renseigne else '' }}">
         </div>
         <div class="mb-3">
             <label>Numéro étudiant</label>
@@ -84,12 +81,13 @@
         </div>
         <div class="mb-3">
             <label>Adresse email</label>
-            <input type="email" name="email" class="form-control" required value="{{ etudiant['Email'] if deja_renseigne }}">
+            <input type="email" name="email" class="form-control" required value="{{ etudiant['Email'] if deja_renseigne else '' }}">
         </div>
         <button type="submit" class="btn btn-success">Enregistrer</button>
     </form>
     {% endif %}
 </div>
+
 
         <form action="/student_profile" method="post">
             <div class="mb-3">
