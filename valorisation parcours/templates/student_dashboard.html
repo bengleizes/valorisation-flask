@@ -27,6 +27,13 @@
             margin-left: 220px;
             padding: 20px;
         }
+{% if not infos_ok %}
+<div class="alert alert-warning mt-3">
+    <strong>Bienvenue !</strong> Avant de pouvoir soumettre vos documents, veuillez remplir vos informations personnelles.
+    <a href="{{ url_for('student_profile') }}" class="btn btn-sm btn-primary ms-3">Mes informations</a>
+</div>
+{% endif %}
+
     </style>
 </head>
 <body>
