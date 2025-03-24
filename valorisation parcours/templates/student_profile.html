@@ -34,91 +34,59 @@
         <a href="/student_dashboard">Accueil</a>
         <a href="/student_profile">Mes informations</a>
         <a href="/student_documents">Mes documents</a>
-        <a href="/logout" class="text-danger">Se déconnecter</a>   
+        <a href="/logout" class="text-danger">Se déconnecter</a>
         <div class="mt-auto text-center p-3">
-    <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" style="max-width: 100px;">
-</div>
+            <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" style="max-width: 100px;">
+        </div>
     </div>
+
     <div class="main-content">
-    <h2>Mes informations personnelles</h2>
+        <h2>Mes informations personnelles</h2>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="alert alert-success">{{ messages[0] }}</div>
-      {% endif %}
-    {% endwith %}
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="alert alert-success">{{ messages[0] }}</div>
+          {% endif %}
+        {% endwith %}
 
-    {% if deja_renseigne and not request.args.get('modifier') %}
-      <div class="mb-4">
-          <p><strong>Nom :</strong> {{ etudiant['Nom'] }}</p>
-          <p><strong>Prénom :</strong> {{ etudiant['Prénom'] }}</p>
-          <p><strong>Promotion :</strong> {{ etudiant['Promotion'] }}</p>
-          <p><strong>Email :</strong> {{ etudiant['Email'] }}</p>
-      </div>
-      <a href="?modifier=true" class="btn btn-outline-primary">Modifier mes informations</a>
-    {% else %}
-    <form method="POST" class="mt-4">
-        <div class="mb-3">
-            <label>Nom</label>
-            <input type="text" name="nom" class="form-control" required value="{{ etudiant['Nom'] if deja_renseigne else '' }}">
-        </div>
-        <div class="mb-3">
-            <label>Prénom</label>
-            <input type="text" name="prenom" class="form-control" required value="{{ etudiant['Prénom'] if deja_renseigne else '' }}">
-        </div>
-        <div class="mb-3">
-            <label>Numéro étudiant</label>
-            <input type="text" name="numero" class="form-control" value="{{ session['student'] }}" readonly>
-        </div>
-        <div class="mb-3">
-            <label>Promotion</label>
-            <select name="promotion" class="form-select" required>
-                <option value="">-- Choisir une promotion --</option>
-                {% for promo in ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'] %}
-                  <option value="{{ promo }}" {% if deja_renseigne and etudiant['Promotion'] == promo %}selected{% endif %}>{{ promo }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="mb-3">
-            <label>Adresse email</label>
-            <input type="email" name="email" class="form-control" required value="{{ etudiant['Email'] if deja_renseigne else '' }}">
-        </div>
-        <button type="submit" class="btn btn-success">Enregistrer</button>
-    </form>
-    {% endif %}
-</div>
-
-
-        <form action="/student_profile" method="post">
-            <div class="mb-3">
-                <label>Nom</label>
-                <input type="text" name="nom" class="form-control" required>
+        {% if deja_renseigne and not request.args.get('modifier') %}
+            <div class="mb-4">
+                <p><strong>Nom :</strong> {{ etudiant['Nom'] }}</p>
+                <p><strong>Prénom :</strong> {{ etudiant['Prénom'] }}</p>
+                <p><strong>Promotion :</strong> {{ etudiant['Promotion'] }}</p>
+                <p><strong>Email :</strong> {{ etudiant['Email'] }}</p>
             </div>
-            <div class="mb-3">
-                <label>Prénom</label>
-                <input type="text" name="prenom" class="form-control" required>
-            </div>
-            <div class="mb-3">
-                <label>Numéro étudiant</label>
-                <input type="text" name="numero" class="form-control" value="{{ numero_etudiant }}" readonly>
-            </div>
-            <div class="mb-3">
-                <label>Promotion</label>
-                <select name="promotion" class="form-select" required>
-                    <option value="">-- Choisir une promotion --</option>
-                    <option value="2021-2022">2021-2022</option>
-                    <option value="2022-2023">2022-2023</option>
-                    <option value="2023-2024">2023-2024</option>
-                    <option value="2024-2025">2024-2025</option>
-                    <option value="2025-2026">2025-2026</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label>Adresse email</label>
-                <input type="email" name="email" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-success">Enregistrer mes informations</button>
-        </form>
+            <a href="?modifier=true" class="btn btn-outline-primary">Modifier mes informations</a>
+        {% else %}
+            <form method="POST" class="mt-4">
+                <div class="mb-3">
+                    <label>Nom</label>
+                    <input type="text" name="nom" class="form-control" required value="{{ etudiant['Nom'] if deja_renseigne else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label>Prénom</label>
+                    <input type="text" name="prenom" class="form-control" required value="{{ etudiant['Prénom'] if deja_renseigne else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label>Numéro étudiant</label>
+                    <input type="text" name="numero" class="form-control" value="{{ session['student'] }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label>Promotion</label>
+                    <select name="promotion" class="form-select" required>
+                        <option value="">-- Choisir une promotion --</option>
+                        {% for promo in ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'] %}
+                          <option value="{{ promo }}" {% if deja_renseigne and etudiant['Promotion'] == promo %}selected{% endif %}>{{ promo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label>Adresse email</label>
+                    <input type="email" name="email" class="form-control" required value="{{ etudiant['Email'] if deja_renseigne else '' }}">
+                </div>
+                <button type="submit" class="btn btn-success">Enregistrer</button>
+            </form>
+        {% endif %}
     </div>
 </body>
 </html>
