@@ -219,6 +219,12 @@ def logout():
     session.pop('admin', None)
     return redirect(url_for('index'))
 
+@app.route('/admin_logout')
+def admin_logout():
+    session.pop('admin', None)
+    return redirect('/')
+
+
 @app.route('/admin_login', methods=['POST'])
 def admin_login():
     if request.form['admin_code'] == 'admin123':
