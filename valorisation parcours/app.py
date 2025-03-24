@@ -96,23 +96,39 @@ def student_dashboard():
 def student_profile():
     if 'student' not in session:
         return redirect(url_for('student_login'))
+
+    df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
+    etudiant_infos = df_infos[df_infos['Numéro Étudiant'] == session['student']]
+
     if request.method == 'POST':
         nom = request.form['nom']
         prenom = request.form['prenom']
-        numero = session['student']
         promotion = request.form['promotion']
         email = request.form['email']
-        infos = pd.DataFrame([[nom, prenom, numero, promotion, email]], columns=['Nom', 'Prénom', 'Numéro Étudiant', 'Promotion', 'Email'])
-        if os.path.exists(INFOS_FILE):
-            df = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-            df = df[df['Numéro Étudiant'] != numero]
-            df = pd.concat([df, infos], ignore_index=True)
-        else:
-            df = infos
-        df.to_csv(INFOS_FILE, index=False, encoding='utf-8-sig')
-        flash('Informations enregistrées')
-        return redirect(url_for('student_dashboard'))
-    return render_template('student_profile.html', numero_etudiant=session['student'])
+
+        # Supprimer l’ancienne ligne si elle existe
+        df_infos = df_infos[df_infos['Numéro Étudiant'] != session['student']]
+        # Ajouter la nouvelle
+        nouvelle_ligne = pd.DataFrame([{
+            'Numéro Étudiant': session['student'],
+            'Nom': nom,
+            'Prénom': prenom,
+            'Promotion': promotion,
+            'Email': email
+        }])
+        df_infos = pd.concat([df_infos, nouvelle_ligne], ignore_index=True)
+        df_infos.to_csv(INFOS_FILE, index=False, encoding='utf-8-sig')
+
+        flash("Informations mises à jour avec succès.")
+        return redirect(url_for('student_profile'))
+
+    # Pour affichage GET
+    if not etudiant_infos.empty:
+        etudiant = etudiant_infos.iloc[0]
+        return render_template('student_profile.html', etudiant=etudiant, deja_renseigne=True)
+    else:
+        return render_template('student_profile.html', deja_renseigne=False)
+
 
 @app.route('/upload', methods=['POST'])
 def upload():
