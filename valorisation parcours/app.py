@@ -1,12 +1,21 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, send_file
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
 import os
 import pandas as pd
 import hashlib
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from flask_sqlalchemy import SQLAlchemy
+from models import db, Student, Attestation
+
 
 app = Flask(__name__)
+import os
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
 app.secret_key = 'mon_super_secret'
 UPLOAD_FOLDER = 'uploads'
 STUDENT_CREDENTIALS_FILE = 'students.csv'
@@ -41,136 +50,120 @@ def student_register():
     if request.method == 'POST':
         student_number = request.form['student_number']
         password = hash_password(request.form['password'])
-        if os.path.exists(STUDENT_CREDENTIALS_FILE):
-            df = pd.read_csv(STUDENT_CREDENTIALS_FILE, encoding='utf-8-sig')
-        else:
-            df = pd.DataFrame(columns=['Numéro Étudiant', 'Mot de Passe'])
-        if student_number in df['Numéro Étudiant'].values:
+
+        # Vérifie s'il existe déjà
+        existing = Student.query.filter_by(numero_etudiant=student_number).first()
+        if existing:
             flash('Ce numéro est déjà enregistré')
             return redirect(url_for('student_register'))
-        df.loc[len(df)] = [student_number, password]
-        df.to_csv(STUDENT_CREDENTIALS_FILE, index=False, encoding='utf-8-sig')
+
+        # Crée l'étudiant
+        new_student = Student(numero_etudiant=student_number, mot_de_passe=password)
+        db.session.add(new_student)
+        db.session.commit()
+
         flash('Inscription réussie')
         return redirect(url_for('student_login'))
+    
     return render_template('student_register.html')
+
 
 @app.route('/student_login', methods=['GET', 'POST'])
 def student_login():
     if request.method == 'POST':
         student_number = request.form['student_number']
         password = hash_password(request.form['password'])
-        try:
-            df = pd.read_csv(STUDENT_CREDENTIALS_FILE, encoding='utf-8-sig')
-        except pd.errors.EmptyDataError:
-            flash('Erreur avec le fichier étudiant')
-            return redirect(url_for('student_login'))
-        user = df[df['Numéro Étudiant'] == student_number]
-        if not user.empty and user.iloc[0]['Mot de Passe'] == password:
-            session['student'] = student_number
+
+        student = Student.query.filter_by(numero_etudiant=student_number).first()
+
+        if student and student.mot_de_passe == password:
+            session['student'] = student.numero_etudiant
             return redirect(url_for('student_dashboard'))
+
         flash('Identifiants incorrects')
+    
     return render_template('student_login.html')
+
 
 @app.route('/student_dashboard')
 def student_dashboard():
     if 'student' not in session:
         return redirect(url_for('student_login'))
 
-    infos_ok = False
-    if os.path.exists(INFOS_FILE):
-        df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-        infos_ok = not df_infos[df_infos['Numéro Étudiant'] == session['student']].empty
+    student = Student.query.filter_by(numero_etudiant=session['student']).first()
+    if not student:
+        flash("Étudiant introuvable.")
+        return redirect(url_for('student_login'))
 
-    if os.path.exists(RESULTS_FILE):
-        df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-        student_data = df[df['Numéro Étudiant'] == session['student']]
-    else:
-        student_data = pd.DataFrame()
+    attestations = Attestation.query.filter_by(student_id=student.id).all()
+
+    # Vérifie s’il a bien rempli ses infos
+    infos_ok = all([student.nom, student.prenom, student.email, student.promotion])
 
     return render_template('student_dashboard.html',
-                           attestations=student_data.to_dict(orient='records'),
-                           infos_ok=infos_ok)
+                           attestations=attestations,
+                           infos_ok=infos_ok,
+                           etudiant=student)
+
 
 @app.route('/student_profile', methods=['GET', 'POST'])
 def student_profile():
     if 'student' not in session:
         return redirect(url_for('student_login'))
 
-    if os.path.exists(INFOS_FILE):
-        df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-    else:
-        df_infos = pd.DataFrame(columns=['Numéro Étudiant', 'Nom', 'Prénom', 'Promotion', 'Email'])
-
-    etudiant_infos = df_infos[df_infos['Numéro Étudiant'] == session['student']]
+    student = Student.query.filter_by(numero_etudiant=session['student']).first()
+    if not student:
+        flash("Étudiant introuvable.")
+        return redirect(url_for('student_login'))
 
     if request.method == 'POST':
-        nom = request.form['nom']
-        prenom = request.form['prenom']
-        promotion = request.form['promotion']
-        email = request.form['email']
-        df_infos = df_infos[df_infos['Numéro Étudiant'] != session['student']]
-        nouvelle_ligne = pd.DataFrame([{
-            'Numéro Étudiant': session['student'],
-            'Nom': nom,
-            'Prénom': prenom,
-            'Promotion': promotion,
-            'Email': email
-        }])
-        df_infos = pd.concat([df_infos, nouvelle_ligne], ignore_index=True)
-        df_infos.to_csv(INFOS_FILE, index=False, encoding='utf-8-sig')
+        student.nom = request.form['nom']
+        student.prenom = request.form['prenom']
+        student.promotion = request.form['promotion']
+        student.email = request.form['email']
+        db.session.commit()
         flash("Informations mises à jour avec succès.")
         return redirect(url_for('student_profile'))
 
-    if not etudiant_infos.empty:
-        etudiant = etudiant_infos.iloc[0]
-        return render_template('student_profile.html', etudiant=etudiant, deja_renseigne=True)
-    else:
-        return render_template('student_profile.html', deja_renseigne=False)
+    deja_renseigne = all([student.nom, student.prenom, student.email, student.promotion])
+    return render_template('student_profile.html', etudiant=student, deja_renseigne=deja_renseigne)
+
 
 @app.route('/upload', methods=['POST'])
 def upload():
     if 'student' not in session:
         return redirect(url_for('student_login'))
 
-    try:
-        df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-        etudiant = df_infos[df_infos['Numéro Étudiant'] == session['student']].iloc[0]
-    except:
-        flash("Veuillez remplir vos informations personnelles.")
-        return redirect(url_for('student_profile'))
-
-    dossier_etudiant = os.path.join(UPLOAD_FOLDER, f"{etudiant['Nom']}_{etudiant['Prénom']}")
-    os.makedirs(dossier_etudiant, exist_ok=True)
+    student = Student.query.filter_by(numero_etudiant=session['student']).first()
+    if not student:
+        flash("Utilisateur non trouvé.")
+        return redirect(url_for('student_login'))
 
     categorie = request.form['mainCategory']
     sous_categorie = request.form['categorie']
     fichier = request.files['file']
     points = calculate_points(categorie, sous_categorie)
     filename = fichier.filename
+
+    dossier_etudiant = os.path.join(app.config['UPLOAD_FOLDER'], f"{student.nom}_{student.prenom}")
+    os.makedirs(dossier_etudiant, exist_ok=True)
     filepath = os.path.join(dossier_etudiant, filename)
     fichier.save(filepath)
 
-    new_row = pd.DataFrame([{
-        "Nom": etudiant['Nom'],
-        "Prénom": etudiant['Prénom'],
-        "Numéro Étudiant": session['student'],
-        "Catégorie": categorie,
-        "Sous-catégorie": sous_categorie,
-        "Points": points,
-        "Fichier": f"{etudiant['Nom']}_{etudiant['Prénom']}/{filename}",
-        "Validation": "En attente",
-        "Commentaire": ""
-    }])
+    # Ajout dans la BDD
+    attestation = Attestation(
+        categorie=categorie,
+        sous_categorie=sous_categorie,
+        fichier=f"{student.nom}_{student.prenom}/{filename}",
+        points=points,
+        student_id=student.id
+    )
+    db.session.add(attestation)
+    db.session.commit()
 
-    if os.path.exists(RESULTS_FILE):
-        df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-        df = pd.concat([df, new_row], ignore_index=True)
-    else:
-        df = new_row
-
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
     flash("Document soumis avec succès.")
     return redirect(url_for('student_dashboard'))
+
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -198,30 +191,45 @@ def admin_login():
 def admin():
     if not session.get('admin'):
         return redirect('/')
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    return render_template('admin.html', attestations=df.to_dict(orient='records'))
+
+    attestations = Attestation.query.join(Student).add_columns(
+        Attestation.id,
+        Attestation.categorie,
+        Attestation.sous_categorie,
+        Attestation.points,
+        Attestation.validation,
+        Attestation.commentaire,
+        Attestation.fichier,
+        Student.nom,
+        Student.prenom,
+        Student.numero_etudiant
+    ).all()
+
+    return render_template('admin.html', attestations=attestations)
+
 
 @app.route('/validate', methods=['POST'])
 def validate_attestation():
     if not session.get('admin'):
         return redirect('/')
-    index = int(request.form['index'])
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    df.loc[index, 'Validation'] = 'Validée'
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
+    attestation_id = int(request.form['attestation_id'])
+    attestation = Attestation.query.get(attestation_id)
+    attestation.validation = "Validée"
+    db.session.commit()
     return redirect(url_for('admin'))
 
 @app.route('/reject', methods=['POST'])
 def reject_attestation():
     if not session.get('admin'):
         return redirect('/')
-    index = int(request.form['index'])
+    attestation_id = int(request.form['attestation_id'])
     commentaire = request.form['commentaire']
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    df.loc[index, 'Validation'] = 'Refusée'
-    df.loc[index, 'Commentaire'] = commentaire
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
+    attestation = Attestation.query.get(attestation_id)
+    attestation.validation = "Refusée"
+    attestation.commentaire = commentaire
+    db.session.commit()
     return redirect(url_for('admin'))
+
 
 @app.route('/export')
 def export():
@@ -234,9 +242,17 @@ def export():
 def admin_etudiant(numero_etudiant):
     if not session.get('admin'):
         return redirect('/')
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    etudiant_docs = df[df['Numéro Étudiant'] == numero_etudiant]
-    return render_template('admin_etudiant.html', numero=numero_etudiant, attestations=etudiant_docs.to_dict(orient='records'))
+
+    student = Student.query.filter_by(numero_etudiant=numero_etudiant).first()
+    if not student:
+        return "Étudiant introuvable", 404
+
+    attestations = Attestation.query.filter_by(student_id=student.id).all()
+
+    return render_template('admin_etudiant.html',
+                           etudiant=student,
+                           attestations=attestations)
+
 
 @app.route('/sauvegarde_drive', methods=['POST'])
 def sauvegarde_drive():
@@ -267,6 +283,9 @@ def sauvegarde_drive():
         flash(f"❌ Erreur lors de l'envoi : {e}")
 
     return redirect(url_for('admin'))
+with app.app_context():
+    db.create_all()
+
 
 
 if __name__ == '__main__':
