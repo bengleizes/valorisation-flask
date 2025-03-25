@@ -1,27 +1,42 @@
 import os
 import datetime
-import subprocess
+import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from models import db, Student, Attestation
+from app import app
 
 # === CONFIGURATION ===
-DATABASE_URL = os.environ.get("DATABASE_URL")
 CREDENTIALS_FILE = 'credentials_gdrive.json'
 DRIVE_FOLDER_ID = '17XIrph3Lv7vcIxWtXKXR5tfLb6aGVsXv'
 
 # === NOM DU FICHIER DE SAUVEGARDE ===
 date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-backup_filename = f"sauvegarde_valoparc_{date_str}.sql"
+backup_filename = f"sauvegarde_valoparc_{date_str}.csv"
 
-# === UTILISER pg_dump POUR EXPORTER LA BASE ===
-print("📦 Export de la base PostgreSQL...")
-command = f'pg_dump "{DATABASE_URL}" > {backup_filename}'
-exit_code = os.system(command)
+# === EXTRACTION DES DONNÉES SQL VERS CSV ===
+with app.app_context():
+    print("📥 Récupération des attestations depuis la base...")
+    attestations = Attestation.query.all()
 
-if exit_code != 0:
-    print("❌ Échec de l'export avec pg_dump.")
-    exit(1)
+    data = []
+    for a in attestations:
+        student = Student.query.get(a.student_id)
+        data.append({
+            'Numéro étudiant': student.numero_etudiant,
+            'Nom': student.nom,
+            'Prénom': student.prenom,
+            'Catégorie': a.categorie,
+            'Sous-catégorie': a.sous_categorie,
+            'Points': a.points,
+            'Validation': a.validation,
+            'Commentaire': a.commentaire,
+            'Fichier': a.fichier,
+        })
+
+    df = pd.DataFrame(data)
+    df.to_csv(backup_filename, index=False, encoding='utf-8-sig')
 
 # === ENVOI VERS GOOGLE DRIVE ===
 print("☁️ Connexion à Google Drive...")
@@ -37,7 +52,7 @@ file_metadata = {
 }
 media = MediaFileUpload(backup_filename, resumable=True)
 
-print("🚀 Envoi de la sauvegarde...")
+print("🚀 Envoi du fichier vers Google Drive...")
 uploaded_file = service.files().create(
     body=file_metadata,
     media_body=media,
@@ -46,5 +61,5 @@ uploaded_file = service.files().create(
 
 print(f"✅ Sauvegarde envoyée avec succès ! Fichier ID : {uploaded_file['id']}")
 
-# (Optionnel) Supprimer le fichier local après envoi
+# (Optionnel) Supprimer le fichier local
 os.remove(backup_filename)
