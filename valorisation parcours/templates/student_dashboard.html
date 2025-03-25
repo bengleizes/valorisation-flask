@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tableau de bord étudiant</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px 20px;
+            color: #000;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #e9ecef;
+        }
+        .main-content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="/student_dashboard">Accueil</a>
+        <a href="/student_profile">Mes informations</a>
+        <a href="/student_documents">Mes documents</a>
+        <a href="/logout" class="text-danger">Se déconnecter</a>
+    <div class="mt-auto text-center p-3">
+    <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo" style="max-width: 100px;">
+</div>
+
+    </div>
+
+    <div class="main-content">
+        <h2>Soumettre une attestation</h2>
+{% if not infos_ok %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center mt-4">
+    <div>
+        <strong>Bienvenue !</strong> Avant de pouvoir soumettre vos documents, veuillez remplir vos informations personnelles.
+    </div>
+    <a href="{{ url_for('student_profile') }}" class="btn btn-sm btn-primary">Mes informations</a>
+</div>
+{% endif %}
+
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label>Catégorie</label>
+                <select name="mainCategory" id="mainCategory" class="form-select" required onchange="updateSubcategories()">
+                    <option value="">-- Choisir une catégorie --</option>
+                    <option value="Cursus Médecine">Cursus Médecine</option>
+                    <option value="Cursus Hors Médecine">Cursus Hors Médecine</option>
+                    <option value="Engagement Étudiant">Engagement Étudiant</option>
+                    <option value="Expérience Professionnelle">Expérience Professionnelle</option>
+                    <option value="Mobilité">Mobilité</option>
+                    <option value="Linguistique">Linguistique</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>Sous-catégorie</label>
+                <select name="categorie" id="subCategory" class="form-select" required></select>
+            </div>
+            <div class="mb-3">
+                <label>Fichier</label>
+                <input type="file" name="file" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-success">Soumettre un document</button>
+        </form>
+
+        <h2 class="mt-5">Mes attestations</h2>
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>Catégorie</th>
+                    <th>Sous-catégorie</th>
+                    <th>Points</th>
+                    <th>Fichier</th>
+                    <th>Validation</th>
+                    <th>Commentaire</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attestation in attestations %}
+                <tr class="{% if attestation['Validation'] == 'Validée' %}table-success{% elif attestation['Validation'] == 'Refusée' %}table-danger{% else %}table-warning{% endif %}">
+                    <td>{{ attestation['Catégorie'] }}</td>
+                    <td>{{ attestation['Sous-catégorie'] }}</td>
+                    <td>{{ attestation['Points'] }}</td>
+                    <td>{{ attestation['Fichier'] }}</td>
+                    <td>{{ attestation['Validation'] }}</td>
+                    <td>{{ attestation['Commentaire'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const subcategories = {
+            "Cursus Médecine": ["UE supplémentaire facultative"],
+            "Cursus Hors Médecine": ["Année(s) de formation", "Master 1", "Master 2", "Thèse d'université", "Publication d'articles"],
+            "Engagement Étudiant": ["UE d'engagement associatif", "UE d'engagement pédagogique", "UE d'engagement social et civique"],
+            "Expérience Professionnelle": ["70h", "140h"],
+            "Mobilité": ["Stage court hors subdivision", "Stage court international", "Stage Erasmus 1 semestre", "Stage Erasmus 2 semestres"],
+            "Linguistique": ["Niveau de langue B2", "Niveau de langue C1", "Niveau de langue C2"]
+        };
+
+        function updateSubcategories() {
+            const mainCategory = document.getElementById("mainCategory").value;
+            const subCategorySelect = document.getElementById("subCategory");
+            subCategorySelect.innerHTML = "";
+            if (subcategories[mainCategory]) {
+                subcategories[mainCategory].forEach(function(sub) {
+                    const option = document.createElement("option");
+                    option.value = sub;
+                    option.text = sub;
+                    subCategorySelect.appendChild(option);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
