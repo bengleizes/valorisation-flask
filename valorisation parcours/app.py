@@ -12,6 +12,7 @@ UPLOAD_FOLDER = 'uploads'
 STUDENT_CREDENTIALS_FILE = 'students.csv'
 RESULTS_FILE = 'results.csv'
 INFOS_FILE = 'infos_etudiants.csv'
+SERVICE_ACCOUNT_FILE = '/etc/secrets/credentials_gdrive.json'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
