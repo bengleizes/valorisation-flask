@@ -28,6 +28,29 @@ def calculate_points(main_category, sub_category):
     }
     return points_dict.get(main_category, {}).get(sub_category, 0)
 
+from flask_sqlalchemy import SQLAlchemy
+db = SQLAlchemy(app)
+
+class Student(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    numero_etudiant = db.Column(db.String, unique=True)
+    nom = db.Column(db.String)
+    prenom = db.Column(db.String)
+    email = db.Column(db.String)
+    promotion = db.Column(db.String)
+    mot_de_passe = db.Column(db.String)
+
+class Attestation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'))
+    categorie = db.Column(db.String)
+    sous_categorie = db.Column(db.String)
+    points = db.Column(db.Integer)
+    fichier = db.Column(db.String)
+    validation = db.Column(db.String)
+    commentaire = db.Column(db.String)
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -233,6 +256,11 @@ def admin_etudiant(numero_etudiant):
     df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
     etudiant_docs = df[df['Numéro Étudiant'] == numero_etudiant]
     return render_template('admin_etudiant.html', numero=numero_etudiant, attestations=etudiant_docs.to_dict(orient='records'))
+
+# 🔁 Export pour d'autres scripts
+from models import Student, Attestation
+from extensions import db
+
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)

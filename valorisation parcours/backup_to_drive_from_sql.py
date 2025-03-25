@@ -1,26 +1,22 @@
 import os
 import datetime
 import pandas as pd
+from app import app, db, Student, Attestation
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from models import db, Student, Attestation
-from app import app
 
-# === CONFIGURATION ===
+# === CONFIG ===
 CREDENTIALS_FILE = 'credentials_gdrive.json'
 DRIVE_FOLDER_ID = '17XIrph3Lv7vcIxWtXKXR5tfLb6aGVsXv'
-
-# === NOM DU FICHIER DE SAUVEGARDE ===
 date_str = datetime.datetime.now().strftime("%Y-%m-%d")
 backup_filename = f"sauvegarde_valoparc_{date_str}.csv"
 
-# === EXTRACTION DES DONNÉES SQL VERS CSV ===
 with app.app_context():
-    print("📥 Récupération des attestations depuis la base...")
+    print("📥 Récupération des données...")
     attestations = Attestation.query.all()
-
     data = []
+
     for a in attestations:
         student = Student.query.get(a.student_id)
         data.append({
@@ -32,14 +28,14 @@ with app.app_context():
             'Points': a.points,
             'Validation': a.validation,
             'Commentaire': a.commentaire,
-            'Fichier': a.fichier,
+            'Fichier': a.fichier
         })
 
     df = pd.DataFrame(data)
     df.to_csv(backup_filename, index=False, encoding='utf-8-sig')
 
-# === ENVOI VERS GOOGLE DRIVE ===
-print("☁️ Connexion à Google Drive...")
+# === Upload vers Google Drive
+print("☁️ Envoi vers Google Drive...")
 creds = service_account.Credentials.from_service_account_file(
     CREDENTIALS_FILE,
     scopes=['https://www.googleapis.com/auth/drive.file']
@@ -52,14 +48,12 @@ file_metadata = {
 }
 media = MediaFileUpload(backup_filename, resumable=True)
 
-print("🚀 Envoi du fichier vers Google Drive...")
 uploaded_file = service.files().create(
     body=file_metadata,
     media_body=media,
     fields='id'
 ).execute()
 
-print(f"✅ Sauvegarde envoyée avec succès ! Fichier ID : {uploaded_file['id']}")
+print(f"✅ Fichier sauvegardé sur Google Drive : ID {uploaded_file['id']}")
 
-# (Optionnel) Supprimer le fichier local
 os.remove(backup_filename)
