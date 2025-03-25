@@ -1,4 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, send_file
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 import os
 import pandas as pd
 import hashlib
@@ -233,6 +236,37 @@ def admin_etudiant(numero_etudiant):
     df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
     etudiant_docs = df[df['Numéro Étudiant'] == numero_etudiant]
     return render_template('admin_etudiant.html', numero=numero_etudiant, attestations=etudiant_docs.to_dict(orient='records'))
+
+@app.route('/sauvegarde_drive', methods=['POST'])
+def sauvegarde_drive():
+    if not session.get('admin'):
+        return redirect('/')
+
+    # Paramètres du fichier
+    local_file = 'results.csv'
+    drive_filename = 'sauvegarde_results.csv'
+    folder_id = '17XIrph3Lv7vcIxWtXKXR5tfLb6aGVsXv?lfhs=2'  # à remplacer !
+
+    try:
+        credentials = service_account.Credentials.from_service_account_file(
+            'credentials_gdrive.json',
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        service = build('drive', 'v3', credentials=credentials)
+
+        file_metadata = {'name': drive_filename}
+        if folder_id:
+            file_metadata['parents'] = [folder_id]
+
+        media = MediaFileUpload(local_file, resumable=True)
+        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+
+        flash("✅ Fichier sauvegardé sur Google Drive avec succès !")
+    except Exception as e:
+        flash(f"❌ Erreur lors de l'envoi : {e}")
+
+    return redirect(url_for('admin'))
+
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
