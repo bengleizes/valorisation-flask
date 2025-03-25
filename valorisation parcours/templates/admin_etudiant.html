@@ -1,36 +1,39 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Suivi étudiant</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Dossier étudiant {{ numero }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
 <body class="container mt-4">
-    <h2>Suivi de {{ etudiant.nom }} {{ etudiant.prenom }} ({{ etudiant.numero_etudiant }})</h2>
-    <p>Email : {{ etudiant.email }} | Promotion : {{ etudiant.promotion }}</p>
+    <h2>Dossier de l'étudiant {{ numero }}</h2>
+    <a href="/admin" class="btn btn-secondary mb-3">← Retour à l’administration</a>
 
-    <a href="/admin" class="btn btn-secondary mb-3">← Retour à l'administration</a>
-
-    <table class="table table-bordered">
-        <thead class="table-light">
+    <table class="table table-bordered table-striped">
+        <thead>
             <tr>
+                <th>Nom</th>
+                <th>Prénom</th>
                 <th>Catégorie</th>
                 <th>Sous-catégorie</th>
-                <th>Fichier</th>
                 <th>Points</th>
                 <th>Validation</th>
                 <th>Commentaire</th>
+                <th>Fichier</th>
             </tr>
         </thead>
         <tbody>
             {% for a in attestations %}
             <tr>
-                <td>{{ a.categorie }}</td>
-                <td>{{ a.sous_categorie }}</td>
-                <td><a href="{{ url_for('uploaded_file', filename=a.fichier) }}" target="_blank">Voir</a></td>
-                <td>{{ a.points }}</td>
-                <td>{{ a.validation }}</td>
-                <td>{{ a.commentaire or '' }}</td>
+                <td>{{ a['Nom'] }}</td>
+                <td>{{ a['Prénom'] }}</td>
+                <td>{{ a['Catégorie'] }}</td>
+                <td>{{ a['Sous-catégorie'] }}</td>
+                <td>{{ a['Points'] }}</td>
+                <td>{{ a['Validation'] }}</td>
+                <td>{{ a['Commentaire'] }}</td>
+                <td><a href="{{ url_for('static', filename='../uploads/' ~ a['Fichier']) }}" target="_blank">Voir</a></td>
             </tr>
             {% endfor %}
         </tbody>

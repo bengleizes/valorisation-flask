@@ -1,26 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Interface Admin - Attestations</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
-    <style>
-        .validée { background-color: #d4edda; }
-        .refusée { background-color: #f8d7da; }
-        .en-attente { background-color: #fff3cd; }
-    </style>
+    <title>Tableau de bord - Administrateur</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css"/>
 </head>
 <body class="container mt-4">
-    <h1 class="mb-4">👩‍🎓 Tableau de bord administrateur</h1>
-
-    <form action="/upload_to_drive" method="post" class="mb-3">
-        <button class="btn btn-outline-primary">📤 Sauvegarder sur Google Drive</button>
-    </form>
-
+    <h2 class="mb-4">Tableau de bord administrateur</h2>
     <a href="/admin_logout" class="btn btn-warning mb-3">Se déconnecter</a>
 
-    <table id="attestations-table" class="display">
+    <table id="attestations-table" class="table table-bordered table-striped">
         <thead>
             <tr>
                 <th>Numéro Étudiant</th>
@@ -28,56 +19,55 @@
                 <th>Prénom</th>
                 <th>Catégorie</th>
                 <th>Sous-catégorie</th>
-                <th>Fichier</th>
                 <th>Points</th>
                 <th>Validation</th>
                 <th>Commentaire</th>
-                <th>Action</th>
+                <th>Document</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for attestation in attestations %}
-                <tr class="{% if attestation.validation == 'Validée' %}validée{% elif attestation.validation == 'Refusée' %}refusée{% else %}en-attente{% endif %}">
-                    <td>
-                        <a href="/admin/etudiant/{{ attestation.numero_etudiant }}">{{ attestation.numero_etudiant }}</a>
-                    </td>
-                    <td>{{ attestation.nom }}</td>
-                    <td>{{ attestation.prenom }}</td>
-                    <td>{{ attestation.categorie }}</td>
-                    <td>{{ attestation.sous_categorie }}</td>
-                    <td>
-                        <a href="{{ url_for('uploaded_file', filename=attestation.fichier) }}" target="_blank">Voir</a>
-                    </td>
-                    <td>{{ attestation.points }}</td>
-                    <td>{{ attestation.validation }}</td>
-                    <td>{{ attestation.commentaire or '' }}</td>
-                    <td>
-                        {% if attestation.validation == 'En attente' %}
-                        <form action="/validate" method="post" style="display:inline;">
-                            <input type="hidden" name="attestation_id" value="{{ attestation.id }}">
-                            <button class="btn btn-success btn-sm">Valider</button>
-                        </form>
-                        <form action="/reject" method="post" style="display:inline;">
-                            <input type="hidden" name="attestation_id" value="{{ attestation.id }}">
-                            <input type="text" name="commentaire" placeholder="Commentaire" class="form-control mb-1" required>
-                            <button class="btn btn-danger btn-sm">Refuser</button>
-                        </form>
-                        {% else %}
-                            <em>Déjà traité</em>
-                        {% endif %}
-                    </td>
-                </tr>
+            <tr>
+                <td><a href="/admin/etudiant/{{ attestation['Numéro Étudiant'] }}">{{ attestation['Numéro Étudiant'] }}</a></td>
+                <td>{{ attestation['Nom'] }}</td>
+                <td>{{ attestation['Prénom'] }}</td>
+                <td>{{ attestation['Catégorie'] }}</td>
+                <td>{{ attestation['Sous-catégorie'] }}</td>
+                <td>{{ attestation['Points'] }}</td>
+                <td>{{ attestation['Validation'] }}</td>
+                <td>{{ attestation['Commentaire'] }}</td>
+                <td>
+                    <a href="{{ url_for('static', filename='../uploads/' ~ attestation['Fichier']) }}" target="_blank">Voir</a>
+                </td>
+                <td>
+                    {% if attestation['Validation'] == 'En attente' %}
+                    <form action="/validate" method="post" style="display:inline;">
+                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+                        <button class="btn btn-success btn-sm">Valider</button>
+                    </form>
+                    <form action="/reject" method="post" style="display:inline;">
+                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+                        <input type="text" name="commentaire" placeholder="Commentaire" class="form-control mb-1">
+                        <button class="btn btn-danger btn-sm">Refuser</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted fst-italic">Déjà traité</span>
+                    {% endif %}
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
     <script>
         $(document).ready(function () {
             $('#attestations-table').DataTable({
-                language: {
-                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json"
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json"
                 }
             });
         });
