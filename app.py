@@ -100,18 +100,32 @@ def student_register():
     if request.method == 'POST':
         student_number = request.form['student_number']
         password = hash_password(request.form['password'])
+
+        # Vérifie d'abord si l'étudiant est déjà dans la base
+        existing_student = Student.query.filter_by(numero_etudiant=student_number).first()
+        if existing_student:
+            flash('Ce numéro est déjà enregistré')
+            return redirect(url_for('student_register'))
+
+        # Sauvegarde dans le fichier CSV (optionnel mais conservé)
         if os.path.exists(STUDENT_CREDENTIALS_FILE):
             df = pd.read_csv(STUDENT_CREDENTIALS_FILE, encoding='utf-8-sig')
         else:
             df = pd.DataFrame(columns=['Numéro Étudiant', 'Mot de Passe'])
-        if student_number in df['Numéro Étudiant'].values:
-            flash('Ce numéro est déjà enregistré')
-            return redirect(url_for('student_register'))
+
         df.loc[len(df)] = [student_number, password]
         df.to_csv(STUDENT_CREDENTIALS_FILE, index=False, encoding='utf-8-sig')
+
+        # ➕ Ajoute aussi dans la base de données
+        new_student = Student(numero_etudiant=student_number, mot_de_passe=password)
+        db.session.add(new_student)
+        db.session.commit()
+
         flash('Inscription réussie')
         return redirect(url_for('student_login'))
+
     return render_template('student_register.html')
+
 
 @app.route('/student_login', methods=['GET', 'POST'])
 def student_login():
