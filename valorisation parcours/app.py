@@ -212,8 +212,7 @@ media = MediaFileUpload(filepath, resumable=True)
 fichier_metadata = {'name': filename, 'parents': [dossier_id]}
 service.files().create(body=fichier_metadata, media_body=media, fields='id').execute()
 
-
-    new_row = pd.DataFrame([{
+new_row = pd.DataFrame([{
         "Nom": etudiant['Nom'],
         "Prénom": etudiant['Prénom'],
         "Numéro Étudiant": session['student'],
@@ -223,7 +222,7 @@ service.files().create(body=fichier_metadata, media_body=media, fields='id').exe
         "Fichier": f"{etudiant['Nom']}_{etudiant['Prénom']}/{filename}",
         "Validation": "En attente",
         "Commentaire": ""
-    }])
+}])
 
     if os.path.exists(RESULTS_FILE):
         df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
