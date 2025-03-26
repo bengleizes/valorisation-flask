@@ -39,8 +39,6 @@ def calculate_points(main_category, sub_category):
     return points_dict.get(main_category, {}).get(sub_category, 0)
 
 # 🧠 Modèles BDD (pour usage futur ou mixte)
-with app.app_context():
-    db.create_all()
 
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -381,8 +379,8 @@ def admin_etudiant(numero_etudiant):
 
 from flask_sqlalchemy import SQLAlchemy
 
-
-
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
