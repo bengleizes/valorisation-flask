@@ -12,6 +12,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
 db = SQLAlchemy(app)
+from app import app, db
 
 # 📁 Fichiers CSV utilisés en complément
 STUDENT_CREDENTIALS_FILE = 'students.csv'
@@ -38,6 +39,9 @@ def calculate_points(main_category, sub_category):
     return points_dict.get(main_category, {}).get(sub_category, 0)
 
 # 🧠 Modèles BDD (pour usage futur ou mixte)
+with app.app_context():
+    db.create_all()
+
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     numero_etudiant = db.Column(db.String, unique=True)
@@ -47,6 +51,9 @@ class Student(db.Model):
     promotion = db.Column(db.String)
     mot_de_passe = db.Column(db.String)
 
+with app.app_context():
+    db.create_all()
+
 class StudentInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     numero_etudiant = db.Column(db.String, db.ForeignKey('student.numero_etudiant'), unique=True)
@@ -55,6 +62,8 @@ class StudentInfo(db.Model):
     promotion = db.Column(db.String)
     email = db.Column(db.String)
 
+with app.app_context():
+    db.create_all()
 
 class Attestation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -66,6 +75,9 @@ class Attestation(db.Model):
     fichier = db.Column(db.String)
     validation = db.Column(db.String)
     commentaire = db.Column(db.String)
+
+with app.app_context():
+    db.create_all()
 
 class StudentProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
