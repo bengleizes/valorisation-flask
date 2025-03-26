@@ -56,6 +56,7 @@ class Attestation(db.Model):
     fichier = db.Column(db.String)
     validation = db.Column(db.String)
     commentaire = db.Column(db.String)
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -173,6 +174,44 @@ def upload():
     filename = fichier.filename
     filepath = os.path.join(dossier_etudiant, filename)
     fichier.save(filepath)
+
+# === 🔄 Sauvegarde sur Google Drive ===
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
+# Charger les credentials
+creds = service_account.Credentials.from_service_account_file(
+    'credentials_gdrive.json',
+    scopes=['https://www.googleapis.com/auth/drive']
+)
+service = build('drive', 'v3', credentials=creds)
+
+# Nom du dossier Drive = "Nom_Prenom"
+nom_dossier_drive = f"{etudiant['Nom']}_{etudiant['Prénom']}"
+
+# 1. Chercher si le dossier existe déjà
+query = f"name = '{nom_dossier_drive}' and mimeType = 'application/vnd.google-apps.folder'"
+results = service.files().list(q=query, fields="files(id)").execute()
+dossiers = results.get('files', [])
+
+# 2. Créer le dossier s’il n’existe pas
+if not dossiers:
+    folder_metadata = {
+        'name': nom_dossier_drive,
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': ['17XIrph3Lv7vcIxWtXKXR5tfLb6aGVsXv']  # ID de ton dossier Google Drive Racine
+    }
+    dossier_drive = service.files().create(body=folder_metadata, fields='id').execute()
+    dossier_id = dossier_drive.get('id')
+else:
+    dossier_id = dossiers[0]['id']
+
+# 3. Envoyer le fichier
+media = MediaFileUpload(filepath, resumable=True)
+fichier_metadata = {'name': filename, 'parents': [dossier_id]}
+service.files().create(body=fichier_metadata, media_body=media, fields='id').execute()
+
 
     new_row = pd.DataFrame([{
         "Nom": etudiant['Nom'],
