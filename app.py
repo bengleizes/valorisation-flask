@@ -13,11 +13,10 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 
 db = SQLAlchemy(app)
 
-
 # 📁 Fichiers CSV utilisés en complément
-STUDENT_CREDENTIALS_FILE = 'students.csv'
-RESULTS_FILE = 'results.csv'
-INFOS_FILE = 'infos_etudiants.csv'
+# STUDENT_CREDENTIALS_FILE = 'students.csv'
+# RESULTS_FILE = 'results.csv'
+# INFOS_FILE = 'infos_etudiants.csv'
 UPLOAD_FOLDER = app.config['UPLOAD_FOLDER']
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static', exist_ok=True)
@@ -101,30 +100,29 @@ def student_register():
         student_number = request.form['student_number']
         password = hash_password(request.form['password'])
 
-        # Vérifie d'abord si l'étudiant est déjà dans la base
-        existing_student = Student.query.filter_by(numero_etudiant=student_number).first()
-        if existing_student:
-            flash('Ce numéro est déjà enregistré')
+        # Vérifier si le compte existe déjà
+        existing = Student.query.filter_by(numero_etudiant=student_number).first()
+        if existing:
+            flash("Ce numéro est déjà enregistré.")
             return redirect(url_for('student_register'))
 
-        # Sauvegarde dans le fichier CSV (optionnel mais conservé)
-        if os.path.exists(STUDENT_CREDENTIALS_FILE):
-            df = pd.read_csv(STUDENT_CREDENTIALS_FILE, encoding='utf-8-sig')
-        else:
-            df = pd.DataFrame(columns=['Numéro Étudiant', 'Mot de Passe'])
-
-        df.loc[len(df)] = [student_number, password]
-        df.to_csv(STUDENT_CREDENTIALS_FILE, index=False, encoding='utf-8-sig')
-
-        # ➕ Ajoute aussi dans la base de données
-        new_student = Student(numero_etudiant=student_number, mot_de_passe=password)
+        # Créer et enregistrer
+        new_student = Student(
+            numero_etudiant=student_number,
+            mot_de_passe=password,
+            nom="",
+            prenom="",
+            email="",
+            promotion=""
+        )
         db.session.add(new_student)
         db.session.commit()
 
-        flash('Inscription réussie')
+        flash("Inscription réussie.")
         return redirect(url_for('student_login'))
 
     return render_template('student_register.html')
+
 
 
 @app.route('/student_login', methods=['GET', 'POST'])
@@ -132,17 +130,18 @@ def student_login():
     if request.method == 'POST':
         student_number = request.form['student_number']
         password = hash_password(request.form['password'])
-        try:
-            df = pd.read_csv(STUDENT_CREDENTIALS_FILE, encoding='utf-8-sig')
-        except pd.errors.EmptyDataError:
-            flash('Erreur avec le fichier étudiant')
-            return redirect(url_for('student_login'))
-        user = df[df['Numéro Étudiant'] == student_number]
-        if not user.empty and user.iloc[0]['Mot de Passe'] == password:
+
+        # Recherche en base
+        student = Student.query.filter_by(numero_etudiant=student_number).first()
+
+        if student and student.mot_de_passe == password:
             session['student'] = student_number
             return redirect(url_for('student_dashboard'))
+
         flash('Identifiants incorrects')
+
     return render_template('student_login.html')
+
 
 @app.route('/student_dashboard')
 def student_dashboard():
@@ -209,29 +208,25 @@ def upload():
     if 'student' not in session:
         return redirect(url_for('student_login'))
 
-    # Récupération des infos de l'étudiant
     student = Student.query.filter_by(numero_etudiant=session['student']).first()
     if not student:
-        flash("Étudiant non trouvé. Merci de vérifier votre compte.")
+        flash("Étudiant non trouvé.")
         return redirect(url_for('student_profile'))
 
-    # Création du dossier de stockage local
-    dossier_etudiant = os.path.join(UPLOAD_FOLDER, f"{student.nom}_{student.prenom}")
-    os.makedirs(dossier_etudiant, exist_ok=True)
-
-    # Récupération des infos du formulaire
     categorie = request.form['mainCategory']
     sous_categorie = request.form['categorie']
     fichier = request.files['file']
     filename = fichier.filename
     points = calculate_points(categorie, sous_categorie)
 
-    # Sauvegarde du fichier en local
+    # Création du dossier local
+    dossier_etudiant = os.path.join(UPLOAD_FOLDER, f"{student.nom}_{student.prenom}")
+    os.makedirs(dossier_etudiant, exist_ok=True)
     filepath = os.path.join(dossier_etudiant, filename)
     fichier.save(filepath)
 
-    # Enregistrement dans la base de données PostgreSQL
-    nouvelle_attestation = Attestation(
+    # Enregistrement dans la base
+    attestation = Attestation(
         student_id=student.id,
         categorie=categorie,
         sous_categorie=sous_categorie,
@@ -240,65 +235,39 @@ def upload():
         validation="En attente",
         commentaire=""
     )
-    db.session.add(nouvelle_attestation)
+    db.session.add(attestation)
     db.session.commit()
 
-    # === 🔄 Sauvegarde sur Google Drive ===
+    # 🔁 Sauvegarde sur Google Drive
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
 
-    # Charger les credentials
     creds = service_account.Credentials.from_service_account_file(
         'credentials_gdrive.json',
         scopes=['https://www.googleapis.com/auth/drive']
     )
     service = build('drive', 'v3', credentials=creds)
+    nom_dossier_drive = f"{student.nom}_{student.prenom}"
 
-    # Nom du dossier Drive = "Nom_Prenom"
-    nom_dossier_drive = f"{etudiant['Nom']}_{etudiant['Prénom']}"
-
-    # 1. Chercher si le dossier existe déjà
     query = f"name = '{nom_dossier_drive}' and mimeType = 'application/vnd.google-apps.folder'"
     results = service.files().list(q=query, fields="files(id)").execute()
     dossiers = results.get('files', [])
 
-    # 2. Créer le dossier s’il n’existe pas
     if not dossiers:
         folder_metadata = {
             'name': nom_dossier_drive,
             'mimeType': 'application/vnd.google-apps.folder',
-            'parents': ['17XIrph3Lv7vcIxWtXKXR5tfLb6aGVsXv']  # ID de ton dossier Google Drive Racine
+            'parents': ['17XIrph3Lv7vcIxWtXKXR5tfLb6aGVsXv']
         }
         dossier_drive = service.files().create(body=folder_metadata, fields='id').execute()
         dossier_id = dossier_drive.get('id')
     else:
         dossier_id = dossiers[0]['id']
 
-    # 3. Envoyer le fichier
     media = MediaFileUpload(filepath, resumable=True)
     fichier_metadata = {'name': filename, 'parents': [dossier_id]}
     service.files().create(body=fichier_metadata, media_body=media, fields='id').execute()
-
-    new_row = pd.DataFrame([{
-        "Nom": etudiant['Nom'],
-        "Prénom": etudiant['Prénom'],
-        "Numéro Étudiant": session['student'],
-        "Catégorie": categorie,
-        "Sous-catégorie": sous_categorie,
-        "Points": points,
-        "Fichier": f"{etudiant['Nom']}_{etudiant['Prénom']}/{filename}",
-        "Validation": "En attente",
-        "Commentaire": ""
-    }])
-
-    if os.path.exists(RESULTS_FILE):
-        df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-        df = pd.concat([df, new_row], ignore_index=True)
-    else:
-        df = new_row
-
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
 
     flash("Document soumis avec succès.")
     return redirect(url_for('student_dashboard'))
@@ -344,6 +313,7 @@ def admin():
 
     # Reformater les résultats pour le template
     formatted_attestations = [{
+        'ID': a.attestation_id,
         'Numéro Étudiant': a.numero_etudiant,
         'Nom': a.nom,
         'Prénom': a.prenom,
@@ -362,27 +332,34 @@ def admin():
 def validate_attestation():
     if not session.get('admin'):
         return redirect('/')
-    index = int(request.form['index'])
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    df.loc[index, 'Validation'] = 'Validée'
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
+
+    attestation_id = request.form['attestation_id']
+    attestation = Attestation.query.get(attestation_id)
+    if attestation:
+        attestation.validation = 'Validée'
+        db.session.commit()
+        flash("Attestation validée avec succès.")
     return redirect(url_for('admin'))
+
 
 @app.route('/reject', methods=['POST'])
 def reject_attestation():
     if not session.get('admin'):
         return redirect('/')
-    index = int(request.form['index'])
+
+    attestation_id = request.form['attestation_id']
     commentaire = request.form['commentaire']
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    df.loc[index, 'Validation'] = 'Refusée'
-    df.loc[index, 'Commentaire'] = commentaire
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
+    attestation = Attestation.query.get(attestation_id)
+    if attestation:
+        attestation.validation = 'Refusée'
+        attestation.commentaire = commentaire
+        db.session.commit()
+        flash("Attestation refusée avec commentaire.")
     return redirect(url_for('admin'))
 
 @app.route('/export')
 def export():
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
+    # df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
     export_file = 'export_admin.xlsx'
     df.to_excel(export_file, index=False)
     return send_file(export_file, as_attachment=True)
@@ -391,9 +368,18 @@ def export():
 def admin_etudiant(numero_etudiant):
     if not session.get('admin'):
         return redirect('/')
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    etudiant_docs = df[df['Numéro Étudiant'] == numero_etudiant]
-    return render_template('admin_etudiant.html', numero=numero_etudiant, attestations=etudiant_docs.to_dict(orient='records'))
+
+    student = Student.query.filter_by(numero_etudiant=numero_etudiant).first()
+    if not student:
+        flash("Étudiant introuvable.")
+        return redirect(url_for('admin'))
+
+    attestations = Attestation.query.filter_by(student_id=student.id).all()
+
+    return render_template('admin_etudiant.html',
+                           numero=numero_etudiant,
+                           attestations=attestations)
+
 
 # 🔁 Export pour d'autres scripts
 
