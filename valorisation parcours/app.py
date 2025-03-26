@@ -41,6 +41,9 @@ def calculate_points(main_category, sub_category):
 # 🧠 Modèles BDD (pour usage futur ou mixte)
 
 class Student(db.Model):
+    __tablename__ = 'student'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True)
     numero_etudiant = db.Column(db.String, unique=True)
     nom = db.Column(db.String)
@@ -64,6 +67,9 @@ with app.app_context():
     db.create_all()
 
 class Attestation(db.Model):
+    __tablename__ = 'attestation'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'))
     student = db.relationship('Student', backref='attestations')
