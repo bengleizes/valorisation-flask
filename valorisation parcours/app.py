@@ -224,15 +224,15 @@ new_row = pd.DataFrame([{
         "Commentaire": ""
 }])
 
-    if os.path.exists(RESULTS_FILE):
+if os.path.exists(RESULTS_FILE):
         df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
         df = pd.concat([df, new_row], ignore_index=True)
-    else:
+else:
         df = new_row
 
-    df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
-    flash("Document soumis avec succès.")
-    return redirect(url_for('student_dashboard'))
+df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
+flash("Document soumis avec succès.")
+return redirect(url_for('student_dashboard'))
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
