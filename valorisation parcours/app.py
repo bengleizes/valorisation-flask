@@ -47,15 +47,33 @@ class Student(db.Model):
     promotion = db.Column(db.String)
     mot_de_passe = db.Column(db.String)
 
+class StudentInfo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    numero_etudiant = db.Column(db.String, db.ForeignKey('student.numero_etudiant'), unique=True)
+    nom = db.Column(db.String)
+    prenom = db.Column(db.String)
+    promotion = db.Column(db.String)
+    email = db.Column(db.String)
+
+
 class Attestation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'))
+    student = db.relationship('Student', backref='attestations')
     categorie = db.Column(db.String)
     sous_categorie = db.Column(db.String)
     points = db.Column(db.Integer)
     fichier = db.Column(db.String)
     validation = db.Column(db.String)
     commentaire = db.Column(db.String)
+
+class StudentProfile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    numero_etudiant = db.Column(db.String, db.ForeignKey('student.numero_etudiant'), unique=True)
+    nom = db.Column(db.String)
+    prenom = db.Column(db.String)
+    email = db.Column(db.String)
+    promotion = db.Column(db.String)
 
 @app.route('/')
 def index():
@@ -101,79 +119,99 @@ def student_dashboard():
     if 'student' not in session:
         return redirect(url_for('student_login'))
 
-    infos_ok = False
-    if os.path.exists(INFOS_FILE):
-        df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-        infos_ok = not df_infos[df_infos['Numéro Étudiant'] == session['student']].empty
+    student = Student.query.filter_by(numero_etudiant=session['student']).first()
+    if not student:
+        flash("Étudiant introuvable.")
+        return redirect(url_for('student_login'))
 
-    if os.path.exists(RESULTS_FILE):
-        df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-        student_data = df[df['Numéro Étudiant'] == session['student']]
-    else:
-        student_data = pd.DataFrame()
+    infos_ok = all([student.nom, student.prenom, student.email, student.promotion])
+
+    # Récupération des attestations en BDD
+    attestations = Attestation.query.filter_by(student_id=student.id).all()
 
     return render_template('student_dashboard.html',
-                           attestations=student_data.to_dict(orient='records'),
-                           infos_ok=infos_ok)
+                           attestations=attestations,
+                           infos_ok=infos_ok,
+                           etudiant=student)
+
 
 @app.route('/student_profile', methods=['GET', 'POST'])
 def student_profile():
     if 'student' not in session:
         return redirect(url_for('student_login'))
 
-    if os.path.exists(INFOS_FILE):
-        df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-    else:
-        df_infos = pd.DataFrame(columns=['Numéro Étudiant', 'Nom', 'Prénom', 'Promotion', 'Email'])
-
-    etudiant_infos = df_infos[df_infos['Numéro Étudiant'] == session['student']]
+    numero_etudiant = session['student']
+    profile = StudentProfile.query.filter_by(numero_etudiant=numero_etudiant).first()
 
     if request.method == 'POST':
         nom = request.form['nom']
         prenom = request.form['prenom']
         promotion = request.form['promotion']
         email = request.form['email']
-        df_infos = df_infos[df_infos['Numéro Étudiant'] != session['student']]
-        nouvelle_ligne = pd.DataFrame([{
-            'Numéro Étudiant': session['student'],
-            'Nom': nom,
-            'Prénom': prenom,
-            'Promotion': promotion,
-            'Email': email
-        }])
-        df_infos = pd.concat([df_infos, nouvelle_ligne], ignore_index=True)
-        df_infos.to_csv(INFOS_FILE, index=False, encoding='utf-8-sig')
+
+        if profile:
+            # Mise à jour
+            profile.nom = nom
+            profile.prenom = prenom
+            profile.promotion = promotion
+            profile.email = email
+        else:
+            # Nouveau profil
+            profile = StudentProfile(
+                numero_etudiant=numero_etudiant,
+                nom=nom,
+                prenom=prenom,
+                promotion=promotion,
+                email=email
+            )
+            db.session.add(profile)
+
+        db.session.commit()
         flash("Informations mises à jour avec succès.")
         return redirect(url_for('student_profile'))
 
-    if not etudiant_infos.empty:
-        etudiant = etudiant_infos.iloc[0]
-        return render_template('student_profile.html', etudiant=etudiant, deja_renseigne=True)
-    else:
-        return render_template('student_profile.html', deja_renseigne=False)
+    deja_renseigne = profile is not None
+    return render_template('student_profile.html', etudiant=profile, deja_renseigne=deja_renseigne)
+
 
 @app.route('/upload', methods=['POST'])
 def upload():
     if 'student' not in session:
         return redirect(url_for('student_login'))
 
-    try:
-        df_infos = pd.read_csv(INFOS_FILE, encoding='utf-8-sig')
-        etudiant = df_infos[df_infos['Numéro Étudiant'] == session['student']].iloc[0]
-    except:
-        flash("Veuillez remplir vos informations personnelles.")
+    # Récupération des infos de l'étudiant
+    student = Student.query.filter_by(numero_etudiant=session['student']).first()
+    if not student:
+        flash("Étudiant non trouvé. Merci de vérifier votre compte.")
         return redirect(url_for('student_profile'))
 
-    dossier_etudiant = os.path.join(UPLOAD_FOLDER, f"{etudiant['Nom']}_{etudiant['Prénom']}")
+    # Création du dossier de stockage local
+    dossier_etudiant = os.path.join(UPLOAD_FOLDER, f"{student.nom}_{student.prenom}")
     os.makedirs(dossier_etudiant, exist_ok=True)
 
+    # Récupération des infos du formulaire
     categorie = request.form['mainCategory']
     sous_categorie = request.form['categorie']
     fichier = request.files['file']
-    points = calculate_points(categorie, sous_categorie)
     filename = fichier.filename
+    points = calculate_points(categorie, sous_categorie)
+
+    # Sauvegarde du fichier en local
     filepath = os.path.join(dossier_etudiant, filename)
     fichier.save(filepath)
+
+    # Enregistrement dans la base de données PostgreSQL
+    nouvelle_attestation = Attestation(
+        student_id=student.id,
+        categorie=categorie,
+        sous_categorie=sous_categorie,
+        points=points,
+        fichier=f"{student.nom}_{student.prenom}/{filename}",
+        validation="En attente",
+        commentaire=""
+    )
+    db.session.add(nouvelle_attestation)
+    db.session.commit()
 
     # === 🔄 Sauvegarde sur Google Drive ===
     from google.oauth2 import service_account
@@ -261,8 +299,34 @@ def admin_login():
 def admin():
     if not session.get('admin'):
         return redirect('/')
-    df = pd.read_csv(RESULTS_FILE, encoding='utf-8-sig')
-    return render_template('admin.html', attestations=df.to_dict(orient='records'))
+
+    attestations = Attestation.query.join(Student).add_columns(
+        Student.numero_etudiant,
+        Student.nom,
+        Student.prenom,
+        Attestation.categorie,
+        Attestation.sous_categorie,
+        Attestation.points,
+        Attestation.fichier,
+        Attestation.validation,
+        Attestation.commentaire
+    ).all()
+
+    # Reformater les résultats pour le template
+    formatted_attestations = [{
+        'Numéro Étudiant': a.numero_etudiant,
+        'Nom': a.nom,
+        'Prénom': a.prenom,
+        'Catégorie': a.categorie,
+        'Sous-catégorie': a.sous_categorie,
+        'Points': a.points,
+        'Fichier': a.fichier,
+        'Validation': a.validation,
+        'Commentaire': a.commentaire
+    } for a in attestations]
+
+    return render_template('admin.html', attestations=formatted_attestations)
+
 
 @app.route('/validate', methods=['POST'])
 def validate_attestation():

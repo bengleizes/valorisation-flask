@@ -29,21 +29,21 @@
         <tbody>
             {% for attestation in attestations %}
             <tr>
-                <td><a href="/admin/etudiant/{{ attestation['Numéro Étudiant'] }}">{{ attestation['Numéro Étudiant'] }}</a></td>
-                <td>{{ attestation['Nom'] }}</td>
-                <td>{{ attestation['Prénom'] }}</td>
-                <td>{{ attestation['Catégorie'] }}</td>
-                <td>{{ attestation['Sous-catégorie'] }}</td>
-                <td>{{ attestation['Points'] }}</td>
-                <td>{{ attestation['Validation'] }}</td>
-                <td>{{ attestation['Commentaire'] }}</td>
+                <td><a href="/admin/etudiant/{{ attestation.student.numero_etudiant }}">{{ attestation.student.numero_etudiant }}</a></td>
+                <td>{{ attestation.student.nom }}</td>
+                <td>{{ attestation.student.prenom }}</td>
+                <td>{{ attestation.categorie }}</td>
+                <td>{{ attestation.sous_categorie }}</td>
+                <td>{{ attestation.points }}</td>
+                <td>{{ attestation.validation }}</td>
+                <td>{{ attestation.commentaire }}</td>
                 <td>
-                    <a href="{{ url_for('static', filename='../uploads/' ~ attestation['Fichier']) }}" target="_blank">Voir</a>
+                    <a href="{{ url_for('static', filename='../uploads/' ~ attestation.fichier) }}" target="_blank">Voir</a>
                 </td>
                 <td>
                     {% if attestation['Validation'] == 'En attente' %}
                     <form action="/validate" method="post" style="display:inline;">
-                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+                        <input type="hidden" name="index" value="{{ attestation.id }}">
                         <button class="btn btn-success btn-sm">Valider</button>
                     </form>
                     <form action="/reject" method="post" style="display:inline;">

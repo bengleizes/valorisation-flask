@@ -92,15 +92,16 @@
             </thead>
             <tbody>
                 {% for attestation in attestations %}
-                <tr class="{% if attestation['Validation'] == 'Validée' %}table-success{% elif attestation['Validation'] == 'Refusée' %}table-danger{% else %}table-warning{% endif %}">
-                    <td>{{ attestation['Catégorie'] }}</td>
-                    <td>{{ attestation['Sous-catégorie'] }}</td>
-                    <td>{{ attestation['Points'] }}</td>
-                    <td>{{ attestation['Fichier'] }}</td>
-                    <td>{{ attestation['Validation'] }}</td>
-                    <td>{{ attestation['Commentaire'] }}</td>
+                <tr class="{% if attestation.validation == 'Validée' %}table-success{% elif attestation.validation == 'Refusée' %}table-danger{% else %}table-warning{% endif %}">
+                    <td>{{ attestation.categorie }}</td>
+                    <td>{{ attestation.sous_categorie }}</td>
+                    <td>{{ attestation.points }}</td>
+                    <td>{{ attestation.fichier }}</td>
+                    <td>{{ attestation.validation }}</td>
+                    <td>{{ attestation.commentaire }}</td>
                 </tr>
                 {% endfor %}
+
             </tbody>
         </table>
     </div>
