@@ -231,6 +231,7 @@ else:
         df = new_row
 
 df.to_csv(RESULTS_FILE, index=False, encoding='utf-8-sig')
+
 flash("Document soumis avec succès.")
 return redirect(url_for('student_dashboard'))
 
