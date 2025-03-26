@@ -262,7 +262,9 @@ def admin_etudiant(numero_etudiant):
 
 # 🔁 Export pour d'autres scripts
 from models import Student, Attestation
-from extensions import db
+from flask_sqlalchemy import SQLAlchemy
+db = SQLAlchemy(app)
+
 
 
 if __name__ == '__main__':
