@@ -1,25 +1,31 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, send_file
+from flask_sqlalchemy import SQLAlchemy
 import os
 import pandas as pd
 import hashlib
 
 app = Flask(__name__)
-import os
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
-
 app.secret_key = 'mon_super_secret'
-UPLOAD_FOLDER = 'uploads'
+
+# 🔧 Configuration base de données (Render ou local)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+app.config['UPLOAD_FOLDER'] = 'uploads'
+
+db = SQLAlchemy(app)
+
+# 📁 Fichiers CSV utilisés en complément
 STUDENT_CREDENTIALS_FILE = 'students.csv'
 RESULTS_FILE = 'results.csv'
 INFOS_FILE = 'infos_etudiants.csv'
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+UPLOAD_FOLDER = app.config['UPLOAD_FOLDER']
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static', exist_ok=True)
 
+# 🔐 Hashage des mots de passe
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# 🎯 Barème des points
 def calculate_points(main_category, sub_category):
     points_dict = {
         "Cursus Médecine": {"UE supplémentaire facultative": 10},
@@ -31,9 +37,7 @@ def calculate_points(main_category, sub_category):
     }
     return points_dict.get(main_category, {}).get(sub_category, 0)
 
-from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy(app)
-
+# 🧠 Modèles BDD (pour usage futur ou mixte)
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     numero_etudiant = db.Column(db.String, unique=True)
@@ -52,8 +56,6 @@ class Attestation(db.Model):
     fichier = db.Column(db.String)
     validation = db.Column(db.String)
     commentaire = db.Column(db.String)
-
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -261,9 +263,9 @@ def admin_etudiant(numero_etudiant):
     return render_template('admin_etudiant.html', numero=numero_etudiant, attestations=etudiant_docs.to_dict(orient='records'))
 
 # 🔁 Export pour d'autres scripts
-from models import Student, Attestation
+
 from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy(app)
+
 
 
 
