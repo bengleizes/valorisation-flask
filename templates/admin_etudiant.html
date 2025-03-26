@@ -26,13 +26,13 @@
         <tbody>
             {% for a in attestations %}
             <tr>
-                <td>{{ a['Nom'] }}</td>
-                <td>{{ a['Prénom'] }}</td>
-                <td>{{ a['Catégorie'] }}</td>
-                <td>{{ a['Sous-catégorie'] }}</td>
-                <td>{{ a['Points'] }}</td>
-                <td>{{ a['Validation'] }}</td>
-                <td>{{ a['Commentaire'] }}</td>
+                <td>{{ attestation.categorie }}</td>
+                <td>{{ attestation.sous_categorie }}</td>
+                <td>{{ attestation.points }}</td>
+                <td>{{ attestation.fichier }}</td>
+                <td>{{ attestation.validation }}</td>
+                <td>{{ attestation.commentaire }}</td>
+
                 <td><a href="{{ url_for('static', filename='../uploads/' ~ a['Fichier']) }}" target="_blank">Voir</a></td>
             </tr>
             {% endfor %}

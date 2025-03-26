@@ -43,11 +43,13 @@
                 <td>
                     {% if attestation['Validation'] == 'En attente' %}
                     <form action="/validate" method="post" style="display:inline;">
-                        <input type="hidden" name="index" value="{{ attestation.id }}">
+                        <input type="hidden" name="attestation_id" value="{{ attestation['ID'] }}">
+
                         <button class="btn btn-success btn-sm">Valider</button>
                     </form>
                     <form action="/reject" method="post" style="display:inline;">
-                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+                        <input type="hidden" name="attestation_id" value="{{ attestation['ID'] }}">
+
                         <input type="text" name="commentaire" placeholder="Commentaire" class="form-control mb-1">
                         <button class="btn btn-danger btn-sm">Refuser</button>
                     </form>
