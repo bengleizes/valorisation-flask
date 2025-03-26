@@ -4,6 +4,9 @@ import pandas as pd
 import hashlib
 
 app = Flask(__name__)
+import os
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+
 app.secret_key = 'mon_super_secret'
 UPLOAD_FOLDER = 'uploads'
 STUDENT_CREDENTIALS_FILE = 'students.csv'
