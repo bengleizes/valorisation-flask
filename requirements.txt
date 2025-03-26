@@ -1,0 +1,9 @@
+psycopg2-binary
+Flask
+pandas
+openpyxl
+flask_sqlalchemy
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
