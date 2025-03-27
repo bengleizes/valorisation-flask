@@ -234,7 +234,7 @@ def upload():
         categorie=categorie,
         sous_categorie=sous_categorie,
         points=points,
-        fichier=f"{student.nom}_{student.prenom}/{filename}",
+        fichier=f"{profile.nom}_{profile.prenom}/{filename}",
         validation="En attente",
         commentaire=""
     )
@@ -251,7 +251,7 @@ def upload():
         scopes=['https://www.googleapis.com/auth/drive']
     )
     service = build('drive', 'v3', credentials=creds)
-    nom_dossier_drive = f"{student.nom}_{student.prenom}"
+    nom_dossier_drive = f"{profile.nom}_{profile.prenom}"
 
     query = f"name = '{nom_dossier_drive}' and mimeType = 'application/vnd.google-apps.folder'"
     results = service.files().list(q=query, fields="files(id)").execute()
