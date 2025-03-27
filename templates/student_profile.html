@@ -51,10 +51,10 @@
 
         {% if deja_renseigne and not request.args.get('modifier') %}
             <div class="mb-4">
-                <p><strong>Nom :</strong> {{ etudiant['Nom'] }}</p>
-                <p><strong>Prénom :</strong> {{ etudiant['Prénom'] }}</p>
-                <p><strong>Promotion :</strong> {{ etudiant['Promotion'] }}</p>
-                <p><strong>Email :</strong> {{ etudiant['Email'] }}</p>
+                <p><strong>Nom :</strong> {{ etudiant.nom }}</p>
+                <p><strong>Prénom :</strong> {{ etudiant.prénom }}</p>
+                <p><strong>Promotion :</strong> {{ etudiant.promotion }}</p>
+                <p><strong>Email :</strong> {{ etudiant.email }}</p>
             </div>
             <a href="?modifier=true" class="btn btn-outline-primary">Modifier mes informations</a>
         {% else %}
