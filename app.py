@@ -196,6 +196,9 @@ def student_profile():
             db.session.add(profile)
 
         db.session.commit()
+
+        profile = StudentProfile.query.filter_by(numero_etudiant=numero_etudiant).first()
+
         flash("Informations mises à jour avec succès.")
         return redirect(url_for('student_profile'))
 
