@@ -299,34 +299,8 @@ def admin():
     if not session.get('admin'):
         return redirect('/')
 
-    attestations = Attestation.query.join(Student).add_columns(
-        Student.numero_etudiant,
-        Student.nom,
-        Student.prenom,
-        Attestation.id,
-        Attestation.categorie,
-        Attestation.sous_categorie,
-        Attestation.points,
-        Attestation.fichier,
-        Attestation.validation,
-        Attestation.commentaire
-    ).all()
-
-    # Reformater les résultats pour le template
-    formatted_attestations = [{
-        'ID': a[0],
-        'Numéro Étudiant': a[1],
-        'Nom': a[2],
-        'Prénom': a[3],
-        'Catégorie': a[4],
-        'Sous-catégorie': a[5],
-        'Points': a[6],
-        'Fichier': a[7],
-        'Validation': a[8],
-        'Commentaire': a[9]
-    } for a in attestations]
-
-    return render_template('admin.html', attestations=formatted_attestations)
+    attestations = Attestation.query.join(Student).all()
+    return render_template('admin.html', attestations=attestations)
 
 
 @app.route('/validate', methods=['POST'])
